@@ -1,0 +1,27 @@
+{
+  "generated_at": "2026-03-16T11:22:53.385666",
+  "total_records": 1243,
+  "total_matches": 796,
+  "maps": [
+    "AmbroseValley",
+    "GrandRift",
+    "Lockdown"
+  ],
+  "dates": [
+    "2026-02-10",
+    "2026-02-11",
+    "2026-02-12",
+    "2026-02-13",
+    "2026-02-14"
+  ],
+  "event_types": [
+    "BotKilled",
+    "Position",
+    "Loot",
+    "Killed",
+    "BotPosition",
+    "BotKill",
+    "KilledByStorm",
+    "Kill"
+  ]
+}

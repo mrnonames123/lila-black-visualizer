@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>LILA BLACK — Level Intel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=DM+Sans:wght@300;400;500;600&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ────────────────────────────────────────── */
+:root{
+  --ink:#06090d; --ink2:#0b1018; --ink3:#101720;
+  --surface:#0d1520; --surface2:#121c28;
+  --line:#1c2d3f; --line2:#243649;
+  --cyan:#00d4ff; --red:#ff3a5c; --amber:#ffb400;
+  --purple:#b06aff; --gold:#ffd700; --green:#22d45a;
+  --text:#bdd0e0; --muted:#4a6880; --bright:#e8f4ff;
+  --col-kill:#ff3a5c; --col-killed:#ff6b35;
+  --col-botkill:#ff8c00; --col-botkilled:#ffaa00;
+  --col-storm:#b06aff; --col-loot:#ffd700;
+  --col-human:#00d4ff; --col-bot:#ff6b35;
+  --r:4px; --r2:6px;
+  --transition:150ms ease;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--ink)}
+body{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);display:flex;flex-direction:column;user-select:none}
+
+/* ── TOPBAR ─────────────────────────────────────────── */
+#topbar{
+  height:48px;background:var(--surface);
+  border-bottom:1px solid var(--line2);
+  display:flex;align-items:center;
+  padding:0 16px;gap:0;flex-shrink:0;
+  position:relative;z-index:30;
+}
+.logo{
+  font-family:'Orbitron',monospace;font-weight:900;
+  font-size:14px;color:var(--cyan);letter-spacing:3px;
+  white-space:nowrap;margin-right:20px;
+}
+.logo b{color:var(--red)}
+
+/* Map tabs IN the topbar — primary nav */
+.map-nav{display:flex;gap:2px;margin-right:20px}
+.map-btn{
+  padding:5px 14px;border-radius:var(--r);
+  border:1px solid transparent;
+  background:transparent;color:var(--muted);
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;
+  cursor:pointer;transition:all var(--transition);letter-spacing:.3px;
+}
+.map-btn:hover{color:var(--text);background:var(--ink3)}
+.map-btn.active{background:rgba(0,212,255,.1);border-color:var(--cyan);color:var(--cyan)}
+
+.top-divider{width:1px;height:22px;background:var(--line2);margin:0 14px}
+
+/* Inline filter row */
+.top-filter{display:flex;align-items:center;gap:6px}
+.top-label{font-size:11px;color:var(--muted);letter-spacing:.3px}
+.top-select{
+  background:var(--ink3);border:1px solid var(--line2);color:var(--text);
+  padding:4px 8px;font-family:'DM Sans',sans-serif;font-size:12px;
+  border-radius:var(--r);outline:none;appearance:none;cursor:pointer;
+  transition:border-color var(--transition);
+}
+.top-select:focus{border-color:var(--cyan)}
+.top-select option{background:var(--ink3)}
+
+/* Player type pills */
+.pill-group{display:flex;gap:3px}
+.pill{
+  padding:4px 10px;border-radius:20px;
+  border:1px solid var(--line2);background:var(--ink3);
+  color:var(--muted);font-size:11px;font-weight:600;
+  cursor:pointer;transition:all var(--transition);
+}
+.pill.human-on{background:rgba(0,212,255,.1);border-color:var(--cyan);color:var(--cyan)}
+.pill.bot-on{background:rgba(255,107,53,.1);border-color:var(--col-bot);color:var(--col-bot)}
+
+/* Top right: global stats */
+.top-stats{margin-left:auto;display:flex;align-items:center;gap:18px}
+.tstat{display:flex;flex-direction:column;align-items:flex-end}
+.tstat-val{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--cyan);font-weight:700;line-height:1}
+.tstat-lbl{font-size:9px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase}
+.live{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s ease-in-out infinite;margin-left:8px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── MAIN LAYOUT ────────────────────────────────────── */
+#main{display:flex;flex:1;overflow:hidden;min-height:0}
+
+/* ── LEFT PANEL ─────────────────────────────────────── */
+#lpanel{
+  width:220px;background:var(--surface);
+  border-right:1px solid var(--line);
+  display:flex;flex-direction:column;
+  overflow:hidden;flex-shrink:0;
+  transition:width var(--transition);
+}
+#lpanel.collapsed{width:0;overflow:hidden}
+
+.panel-section{border-bottom:1px solid var(--line);padding:12px 14px}
+.psec-head{
+  font-size:10px;color:var(--muted);letter-spacing:1.5px;
+  text-transform:uppercase;margin-bottom:10px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+
+/* Event toggles — compact grid */
+.ev-grid{display:flex;flex-direction:column;gap:3px}
+.ev-item{
+  display:flex;align-items:center;gap:8px;
+  padding:5px 7px;border-radius:var(--r);
+  cursor:pointer;transition:background var(--transition);
+  border:1px solid transparent;
+}
+.ev-item:hover{background:rgba(255,255,255,.03)}
+.ev-item.on{border-color:rgba(255,255,255,.06)}
+.ev-pip{width:8px;height:8px;border-radius:50%;border:1.5px solid currentColor;transition:all var(--transition);flex-shrink:0}
+.ev-item.on .ev-pip{background:currentColor;box-shadow:0 0 4px currentColor}
+.ev-name{font-size:12px;color:var(--text);flex:1;font-weight:500}
+.ev-num{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted)}
+
+/* Heatmap selector */
+.hm-grid{display:flex;flex-direction:column;gap:3px}
+.hm-item{
+  display:flex;align-items:center;gap:9px;padding:7px 9px;
+  border-radius:var(--r);border:1px solid var(--line);
+  background:var(--ink3);cursor:pointer;transition:all var(--transition);
+}
+.hm-item:hover{border-color:var(--line2)}
+.hm-item.active{border-color:var(--amber);background:rgba(255,180,0,.07)}
+.hm-icon{font-size:14px;line-height:1;flex-shrink:0}
+.hm-text{flex:1}
+.hm-name{font-size:12px;font-weight:600;color:var(--text)}
+.hm-desc{font-size:10px;color:var(--muted);margin-top:1px}
+.hm-item.active .hm-name{color:var(--amber)}
+
+/* Heatmap opacity slider */
+.opacity-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.opacity-label{font-size:10px;color:var(--muted);white-space:nowrap}
+.opacity-slider{flex:1;height:2px;-webkit-appearance:none;background:var(--line2);border-radius:1px;outline:none;cursor:pointer}
+.opacity-slider::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--amber);cursor:pointer}
+.opacity-val{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--amber);min-width:26px;text-align:right}
+
+/* Match list */
+#match-list{
+  flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;
+  padding:10px 14px;
+}
+#match-list::-webkit-scrollbar{width:3px}
+#match-list::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px}
+.match-card{
+  padding:7px 9px;background:var(--ink3);border:1px solid var(--line);
+  border-radius:var(--r);cursor:pointer;transition:all var(--transition);
+}
+.match-card:hover{border-color:var(--line2)}
+.match-card.sel{border-color:var(--cyan);background:rgba(0,212,255,.05)}
+.mc-id{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-row{display:flex;align-items:center;gap:6px}
+.mc-tag{font-size:11px;font-weight:600}
+.mc-tag.h{color:var(--cyan)}.mc-tag.b{color:var(--col-bot)}
+.mc-date{margin-left:auto;font-size:10px;color:var(--muted)}
+.match-count-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(0,212,255,.12);color:var(--cyan);
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+  padding:1px 6px;border-radius:10px;font-weight:700;
+}
+.match-section-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px 4px;font-size:10px;color:var(--muted);
+  letter-spacing:1px;text-transform:uppercase;flex-shrink:0;
+}
+
+/* ── MAP AREA ───────────────────────────────────────── */
+#map-area{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--ink)}
+#canvas-wrap{flex:1;position:relative;overflow:hidden;cursor:crosshair}
+#img-map{position:absolute;top:0;left:0;pointer-events:none;transform-origin:0 0;image-rendering:auto;max-width:none;z-index:1}
+#cv-heat{position:absolute;top:0;left:0;pointer-events:none;z-index:2}
+#cv-main{position:absolute;top:0;left:0;pointer-events:none;z-index:3}
+
+/* Scanlines */
+#canvas-wrap::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.02) 2px,rgba(0,0,0,.02) 4px);
+}
+
+/* Floating map controls */
+#map-controls{
+  position:absolute;top:14px;right:14px;
+  display:flex;flex-direction:column;gap:6px;z-index:20;
+}
+.mc-group{display:flex;flex-direction:column;gap:2px;background:rgba(6,9,13,.88);border:1px solid var(--line2);border-radius:var(--r2);padding:3px;backdrop-filter:blur(8px)}
+.mcbtn{
+  width:28px;height:28px;border:none;background:transparent;
+  color:var(--muted);cursor:pointer;border-radius:var(--r);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;transition:all var(--transition);font-family:monospace;
+}
+.mcbtn:hover{background:var(--ink3);color:var(--text)}
+.mcbtn.active{background:rgba(0,212,255,.12);color:var(--cyan)}
+
+/* Sidebar toggle button */
+#sidebar-toggle{
+  position:absolute;top:14px;left:14px;z-index:20;
+  width:28px;height:28px;background:rgba(6,9,13,.88);
+  border:1px solid var(--line2);border-radius:var(--r);
+  color:var(--muted);cursor:pointer;display:flex;
+  align-items:center;justify-content:center;font-size:14px;
+  transition:all var(--transition);backdrop-filter:blur(8px);
+}
+#sidebar-toggle:hover{color:var(--text);border-color:var(--line2)}
+
+/* Insight chips — float over map */
+#insights-bar{
+  position:absolute;bottom:90px;left:50%;
+  transform:translateX(-50%);
+  display:flex;gap:8px;z-index:20;
+  pointer-events:none;
+  opacity:0;transition:opacity .3s ease;
+}
+#insights-bar.visible{opacity:1;pointer-events:auto}
+.insight-chip{
+  background:rgba(6,9,13,.92);border:1px solid var(--line2);
+  border-radius:20px;padding:5px 12px;
+  font-size:11px;color:var(--text);
+  backdrop-filter:blur(8px);white-space:nowrap;
+  display:flex;align-items:center;gap:6px;
+}
+.insight-chip .ic-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* Tooltip */
+#tip{
+  position:absolute;background:rgba(6,9,13,.96);
+  border:1px solid var(--line2);padding:8px 12px;
+  border-radius:var(--r2);font-size:11px;
+  pointer-events:none;z-index:50;display:none;
+  backdrop-filter:blur(8px);max-width:200px;line-height:1.7;
+}
+
+/* No data */
+#no-data{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:30}
+#no-data .nd1{font-family:'Orbitron',monospace;font-size:13px;color:var(--muted);letter-spacing:3px}
+#no-data .nd2{font-size:11px;color:var(--muted);opacity:.5}
+
+/* ── TIMELINE ───────────────────────────────────────── */
+#timeline{
+  height:72px;background:var(--surface);
+  border-top:1px solid var(--line);
+  padding:8px 16px;display:flex;flex-direction:column;
+  gap:6px;flex-shrink:0;
+}
+.tl-row{display:flex;align-items:center;gap:8px}
+.tl-btn{
+  width:26px;height:26px;background:var(--ink3);
+  border:1px solid var(--line2);color:var(--text);
+  cursor:pointer;border-radius:var(--r);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;transition:all var(--transition);flex-shrink:0;
+}
+.tl-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.tl-btn.playing{border-color:var(--red);color:var(--red);background:rgba(255,58,92,.08)}
+#btn-play{width:32px;height:32px;font-size:13px}
+.tl-time{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--cyan);min-width:42px;text-align:center}
+.tl-dur{color:var(--muted)!important}
+.tl-spd{
+  font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);
+  cursor:pointer;padding:3px 7px;border:1px solid var(--line);
+  border-radius:var(--r);background:var(--ink3);
+  transition:all var(--transition);flex-shrink:0;
+}
+.tl-spd:hover{border-color:var(--cyan);color:var(--cyan)}
+.tl-lbl{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;text-align:right}
+
+/* Progress track */
+.tl-track-wrap{position:relative;flex:1;display:flex;align-items:center}
+#tl-slider{
+  width:100%;height:3px;-webkit-appearance:none;
+  background:var(--line2);border-radius:2px;outline:none;cursor:pointer;
+  position:relative;z-index:2;
+}
+#tl-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:12px;height:12px;
+  border-radius:50%;background:var(--cyan);
+  box-shadow:0 0 6px var(--cyan);cursor:pointer;
+  transition:transform .1s;
+}
+#tl-slider::-webkit-slider-thumb:hover{transform:scale(1.3)}
+#tl-progress{
+  position:absolute;left:0;top:50%;transform:translateY(-50%);
+  height:3px;background:linear-gradient(90deg,var(--cyan),rgba(0,212,255,.4));
+  border-radius:2px;pointer-events:none;z-index:1;transition:width .05s;
+}
+
+/* Keyboard shortcut hint */
+.kbd-hint{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px}
+kbd{
+  background:var(--ink3);border:1px solid var(--line2);
+  border-radius:3px;padding:1px 4px;font-size:9px;
+  font-family:'Share Tech Mono',monospace;color:var(--muted);
+}
+
+/* ── RIGHT PANEL ────────────────────────────────────── */
+#rpanel{
+  width:200px;background:var(--surface);
+  border-left:1px solid var(--line);
+  overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;
+}
+#rpanel::-webkit-scrollbar{width:3px}
+#rpanel::-webkit-scrollbar-thumb{background:var(--line2)}
+
+/* Stat cards */
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:3px 0}
+.scard{
+  background:var(--ink3);border:1px solid var(--line);
+  border-radius:var(--r);padding:8px 10px;
+}
+.scard-val{
+  font-family:'Orbitron',monospace;font-size:16px;font-weight:700;
+  color:var(--cyan);line-height:1;margin-bottom:3px;
+}
+.scard-lbl{font-size:9px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase}
+
+/* Auto insight card */
+.insight-card{
+  background:linear-gradient(135deg,rgba(0,212,255,.06),rgba(0,212,255,.02));
+  border:1px solid rgba(0,212,255,.2);border-radius:var(--r2);
+  padding:10px 12px;margin:2px 0;
+}
+.ic-title{font-size:11px;font-weight:600;color:var(--cyan);margin-bottom:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.ic-body{font-size:11px;color:var(--muted);line-height:1.5;word-break:break-word}
+
+/* Breakdown bars */
+.breakdown{display:flex;flex-direction:column;gap:5px}
+.bk-row{display:flex;flex-direction:column;gap:2px}
+.bk-hd{display:flex;justify-content:space-between;align-items:baseline}
+.bk-name{font-size:11px;font-weight:500}
+.bk-val{font-family:'Share Tech Mono',monospace;font-size:10px}
+.bk-track{height:2px;background:var(--line);border-radius:1px;overflow:hidden}
+.bk-fill{height:100%;border-radius:1px;transition:width .4s ease}
+
+/* Selected match */
+#sel-card{
+  background:var(--ink3);border:1px solid var(--line);
+  border-radius:var(--r);padding:10px;
+  display:flex;flex-direction:column;gap:4px;
+}
+.sel-row{display:flex;justify-content:space-between;font-size:11px}
+.sel-key{color:var(--muted)}.sel-val{color:var(--text);font-weight:500}
+.sel-mid{
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  color:var(--muted);word-break:break-all;margin-bottom:4px;
+  line-height:1.5;
+}
+
+/* Legend — compact inline */
+#legend{
+  position:absolute;bottom:82px;right:14px;
+  background:rgba(6,9,13,.9);border:1px solid var(--line2);
+  padding:8px 10px;border-radius:var(--r2);font-size:10px;
+  z-index:20;backdrop-filter:blur(8px);
+  display:flex;flex-direction:column;gap:3px;
+}
+.leg-row{display:flex;align-items:center;gap:6px;color:var(--text)}
+.leg-line{width:12px;height:2px;border-radius:1px;flex-shrink:0}
+.leg-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* ── LOADING ────────────────────────────────────────── */
+#loading{
+  position:fixed;inset:0;background:var(--ink);
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;z-index:999;gap:20px;
+}
+.ld-logo{
+  font-family:'Orbitron',monospace;font-size:24px;font-weight:900;
+  color:var(--cyan);letter-spacing:6px;
+  animation:flicker 3s ease-in-out infinite;
+}
+.ld-logo b{color:var(--red)}
+@keyframes flicker{0%,100%{opacity:1}91%{opacity:1}92%{opacity:.2}93%{opacity:1}96%{opacity:.5}97%{opacity:1}}
+.ld-bar-wrap{width:240px;height:1px;background:var(--line);border-radius:1px;overflow:hidden}
+.ld-bar{height:100%;background:linear-gradient(90deg,var(--cyan),var(--red));width:0%;transition:width .2s ease}
+.ld-txt{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px}
+.ld-sub{font-size:11px;color:var(--muted);opacity:.5;margin-top:-10px}
+
+/* ── EMPTY STATE ────────────────────────────────────── */
+.empty-matches{
+  padding:20px 14px;text-align:center;
+  font-size:11px;color:var(--muted);line-height:1.6;
+}
+.empty-matches b{color:var(--text);display:block;margin-bottom:6px}
+
+/* Keyboard shortcut overlay */
+#kb-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:200;display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+#kb-overlay.show{display:flex}
+.kb-card{
+  background:var(--surface);border:1px solid var(--line2);
+  border-radius:var(--r2);padding:24px 28px;
+  min-width:320px;
+}
+.kb-title{font-family:'Orbitron',monospace;font-size:12px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px}
+.kb-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px}
+.kb-row:last-child{border-bottom:none}
+.kb-action{color:var(--text)}
+.kb-keys{display:flex;gap:4px}
+
+/* ── UTILS ──────────────────────────────────────────── */
+.text-cyan{color:var(--cyan)}
+.text-muted{color:var(--muted)}
+
+/* ── INSIGHTS MODAL ─────────────────────────────────── */
+#insights-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);
+  z-index:500;display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);
+  animation:fadeIn .25s ease;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+#insights-modal.hidden{display:none}
+.im-card{
+  background:var(--surface);border:1px solid var(--line2);
+  border-radius:10px;padding:28px 32px;
+  width:min(780px,92vw);max-height:88vh;overflow-y:auto;
+  position:relative;
+}
+.im-card::-webkit-scrollbar{width:3px}
+.im-card::-webkit-scrollbar-thumb{background:var(--line2)}
+.im-header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:24px;gap:16px;
+}
+.im-title{
+  font-family:'Orbitron',monospace;font-size:13px;font-weight:700;
+  color:var(--cyan);letter-spacing:2px;text-transform:uppercase;
+}
+.im-subtitle{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.im-close{
+  width:28px;height:28px;border:1px solid var(--line2);
+  background:var(--ink3);border-radius:var(--r);color:var(--muted);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;transition:all var(--transition);
+}
+.im-close:hover{border-color:var(--red);color:var(--red)}
+
+/* Summary banner at top */
+.im-summary{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  margin-bottom:24px;
+}
+.im-sum-card{
+  background:var(--ink3);border:1px solid var(--line);
+  border-radius:var(--r2);padding:12px 14px;text-align:center;
+}
+.im-sum-val{
+  font-family:'Orbitron',monospace;font-size:20px;font-weight:700;
+  line-height:1;margin-bottom:4px;
+}
+.im-sum-lbl{font-size:10px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;line-height:1.4}
+
+/* Individual insight cards */
+.im-insights{display:flex;flex-direction:column;gap:14px;margin-bottom:20px}
+.im-insight{
+  background:var(--ink3);border:1px solid var(--line);
+  border-radius:var(--r2);padding:14px 16px;
+  border-left:3px solid var(--line);
+  transition:border-color var(--transition);
+}
+.im-insight:hover{border-left-color:var(--cyan)}
+.im-insight.critical{border-left-color:var(--red)}
+.im-insight.warning{border-left-color:var(--amber)}
+.im-insight.info{border-left-color:var(--cyan)}
+.im-findings{display:flex;flex-direction:column;gap:12px;margin:16px 0 20px}
+.im-finding{display:flex;gap:16px;padding:16px;background:var(--ink3);border:1px solid var(--line);border-radius:var(--r2)}
+.im-finding-left{display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;width:60px}
+.im-finding-num{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;line-height:1}
+.im-finding-badge{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:3px 6px;border-radius:10px;border:1px solid;text-align:center;white-space:nowrap;line-height:1.4}
+.im-finding-right{display:flex;flex-direction:column;gap:7px;flex:1;min-width:0}
+.im-finding-title{font-size:15px;font-weight:700;color:var(--bright);line-height:1.3}
+.im-finding-stat{font-size:13px;color:var(--text);line-height:1.5}
+.im-finding-stat b{color:var(--cyan)}
+.im-finding-why{font-size:12px;color:var(--muted);line-height:1.5;padding:7px 10px;background:var(--surface2);border-radius:var(--r);border-left:2px solid var(--line2)}
+.im-finding-cta{align-self:flex-start;padding:5px 12px;background:transparent;border:1px solid var(--line2);border-radius:var(--r);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all var(--transition)}
+.im-finding-cta:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* CTA button */
+.im-cta{
+  display:flex;justify-content:center;gap:10px;padding-top:4px;
+}
+.im-btn{
+  padding:9px 20px;border-radius:var(--r);font-family:'DM Sans',sans-serif;
+  font-size:12px;font-weight:700;cursor:pointer;transition:all var(--transition);
+  letter-spacing:.3px;
+}
+.im-btn-primary{
+  background:rgba(0,212,255,.12);border:1px solid var(--cyan);
+  color:var(--cyan);
+}
+.im-btn-primary:hover{background:rgba(0,212,255,.2)}
+.im-btn-secondary{
+  background:var(--ink3);border:1px solid var(--line2);color:var(--muted);
+}
+.im-btn-secondary:hover{border-color:var(--text);color:var(--text)}
+
+/* Insights button in topbar */
+.insights-btn{
+  padding:5px 12px;border-radius:var(--r);
+  background:rgba(255,58,92,.1);border:1px solid rgba(255,58,92,.3);
+  color:var(--red);font-family:'DM Sans',sans-serif;font-size:11px;
+  font-weight:700;cursor:pointer;transition:all var(--transition);
+  display:flex;align-items:center;gap:5px;white-space:nowrap;
+}
+.insights-btn:hover{background:rgba(255,58,92,.18)}
+.insights-btn .ib-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--red);box-shadow:0 0 5px var(--red);
+  animation:pulse 1.5s ease-in-out infinite;
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR: primary nav + inline filters -->
+<div id="topbar">
+  <div class="logo">LILA <b>BLACK</b></div>
+
+  <div class="map-nav" id="map-nav">
+    <button class="map-btn active" data-map="AmbroseValley">Ambrose Valley</button>
+    <button class="map-btn" data-map="GrandRift">Grand Rift</button>
+    <button class="map-btn" data-map="Lockdown">Lockdown</button>
+  </div>
+
+  <div class="top-divider"></div>
+
+  <div class="top-filter">
+    <span class="top-label">Date</span>
+    <select class="top-select" id="f-date">
+      <option value="">All dates</option>
+      <option value="2026-02-10">Feb 10</option>
+      <option value="2026-02-11">Feb 11</option>
+      <option value="2026-02-12">Feb 12</option>
+      <option value="2026-02-13">Feb 13</option>
+      <option value="2026-02-14">Feb 14 ∙ partial</option>
+    </select>
+  </div>
+
+  <div class="top-divider"></div>
+
+  <div class="top-filter">
+    <span class="top-label">Show</span>
+    <div class="pill-group">
+      <div class="pill human-on" id="tog-human" onclick="togglePlayer('human')">Humans</div>
+      <div class="pill bot-on"   id="tog-bot"   onclick="togglePlayer('bot')">Bots</div>
+    </div>
+  </div>
+
+  <div class="top-stats">
+    <div class="tstat">
+      <span class="tstat-val" id="s-matches">–</span>
+      <span class="tstat-lbl">Matches</span>
+    </div>
+    <div class="tstat">
+      <span class="tstat-val" id="s-players">–</span>
+      <span class="tstat-lbl">Players</span>
+    </div>
+    <div class="tstat">
+      <span class="tstat-val" id="s-map">–</span>
+      <span class="tstat-lbl">Active Map</span>
+    </div>
+    <button class="insights-btn" onclick="showInsights()">
+      <div class="ib-dot"></div>
+      3 Key Findings
+    </button>
+    <div class="live" title="Live data"></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- LEFT PANEL: events + heatmap + match list -->
+  <div id="lpanel">
+
+    <div class="panel-section">
+      <div class="psec-head">
+        <span>Events</span>
+        <span style="font-size:9px;cursor:pointer;color:var(--cyan)" onclick="toggleAllEvents()">Toggle all</span>
+      </div>
+      <div class="ev-grid">
+        <div class="ev-item on" data-ev="Kill"          style="color:var(--col-kill)"      onclick="toggleEvent(this)"><div class="ev-pip"></div><span class="ev-name">Kill</span><span class="ev-num" id="ec-Kill">0</span></div>
+        <div class="ev-item on" data-ev="Killed"        style="color:var(--col-killed)"    onclick="toggleEvent(this)"><div class="ev-pip"></div><span class="ev-name">Killed</span><span class="ev-num" id="ec-Killed">0</span></div>
+        <div class="ev-item on" data-ev="BotKill"       style="color:var(--col-botkill)"   onclick="toggleEvent(this)"><div class="ev-pip"></div><span class="ev-name">Bot Kill</span><span class="ev-num" id="ec-BotKill">0</span></div>
+        <div class="ev-item on" data-ev="BotKilled"     style="color:var(--col-botkilled)" onclick="toggleEvent(this)"><div class="ev-pip"></div><span class="ev-name">Bot Killed</span><span class="ev-num" id="ec-BotKilled">0</span></div>
+        <div class="ev-item on" data-ev="KilledByStorm" style="color:var(--col-storm)"     onclick="toggleEvent(this)"><div class="ev-pip"></div><span class="ev-name">Storm Death</span><span class="ev-num" id="ec-KilledByStorm">0</span></div>
+        <div class="ev-item on" data-ev="Loot"          style="color:var(--col-loot)"      onclick="toggleEvent(this)"><div class="ev-pip"></div><span class="ev-name">Loot</span><span class="ev-num" id="ec-Loot">0</span></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="psec-head"><span>Heatmap</span></div>
+      <div class="hm-grid">
+        <div class="hm-item active" onclick="setHeatmap('none',this)">
+          <span class="hm-icon">○</span>
+          <div class="hm-text"><div class="hm-name">Off</div><div class="hm-desc">Show paths only</div></div>
+        </div>
+        <div class="hm-item" onclick="setHeatmap('kills',this)">
+          <span class="hm-icon">🎯</span>
+          <div class="hm-text"><div class="hm-name">Kill Zones</div><div class="hm-desc">Where kills happen</div></div>
+        </div>
+        <div class="hm-item" onclick="setHeatmap('deaths',this)">
+          <span class="hm-icon">💀</span>
+          <div class="hm-text"><div class="hm-name">Death Zones</div><div class="hm-desc">Where players die</div></div>
+        </div>
+        <div class="hm-item" onclick="setHeatmap('traffic',this)">
+          <span class="hm-icon">🗺</span>
+          <div class="hm-text"><div class="hm-name">Traffic</div><div class="hm-desc">Player movement density</div></div>
+        </div>
+      </div>
+      <div class="opacity-row">
+        <span class="opacity-label">Opacity</span>
+        <input type="range" class="opacity-slider" id="hm-opacity" min="10" max="100" value="72" oninput="setHmOpacity(this.value)">
+        <span class="opacity-val" id="hm-opacity-val">72%</span>
+      </div>
+    </div>
+
+    <div class="match-section-head">
+      <span>Matches</span>
+      <span class="match-count-badge" id="match-count">0</span>
+    </div>
+    <div id="match-list"></div>
+
+  </div>
+
+  <!-- MAP -->
+  <div id="map-area">
+    <div id="canvas-wrap">
+      <img id="img-map" src="" alt="" draggable="false"/>
+      <canvas id="cv-heat"></canvas>
+      <canvas id="cv-main"></canvas>
+
+      <!-- Sidebar toggle -->
+      <button id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle panel (P)">☰</button>
+
+      <!-- Floating controls -->
+      <div id="map-controls">
+        <div class="mc-group">
+          <button class="mcbtn" onclick="doZoom(1.25)" title="Zoom in (+)">+</button>
+          <button class="mcbtn" onclick="doZoom(0.8)"  title="Zoom out (-)">−</button>
+          <button class="mcbtn" onclick="resetView()"  title="Fit map (F)">⊙</button>
+        </div>
+        <div class="mc-group">
+          <button class="mcbtn" id="btn-legend-toggle" onclick="toggleLegend()" title="Legend">◈</button>
+          <button class="mcbtn" onclick="showKb()" title="Keyboard shortcuts (?)">?</button>
+        </div>
+      </div>
+
+      <!-- Auto-insights bar -->
+      <div id="insights-bar"></div>
+
+      <div id="tip"></div>
+      <div id="no-data">
+        <div class="nd1">NO DATA</div>
+        <div class="nd2">Run process_data.py first</div>
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div id="timeline">
+      <div class="tl-row">
+        <button class="tl-btn" id="btn-play" onclick="togglePlay()" title="Play / Pause (Space)">▶</button>
+        <button class="tl-btn" onclick="nudge(-0.02)" title="Step back (←)">◀</button>
+        <button class="tl-btn" onclick="nudge(0.02)"  title="Step forward (→)">▶▶</button>
+        <span class="tl-time" id="tl-cur">0:00</span>
+        <div class="tl-track-wrap">
+          <div id="tl-progress" style="width:0%"></div>
+          <input type="range" id="tl-slider" min="0" max="1000" value="0" oninput="onSlider(this.value)">
+        </div>
+        <span class="tl-time tl-dur" id="tl-dur">0:00</span>
+        <span class="tl-spd" id="tl-spd" onclick="cycleSpeed()" title="Playback speed">1×</span>
+        <span class="tl-lbl" id="tl-lbl">All Matches</span>
+      </div>
+      <div class="tl-row" style="padding-left:4px">
+        <span class="kbd-hint"><kbd>Space</kbd> play &nbsp;<kbd>←</kbd><kbd>→</kbd> step &nbsp;<kbd>F</kbd> fit &nbsp;<kbd>P</kbd> panel &nbsp;<kbd>?</kbd> shortcuts</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL: stats + insights -->
+  <div id="rpanel">
+    <div class="panel-section">
+      <div class="psec-head"><span>Match Stats</span></div>
+      <div class="stat-row">
+        <div class="scard"><div class="scard-val" id="ms-h">–</div><div class="scard-lbl">Humans</div></div>
+        <div class="scard"><div class="scard-val" id="ms-b">–</div><div class="scard-lbl">Bots</div></div>
+        <div class="scard"><div class="scard-val" id="ms-k">–</div><div class="scard-lbl">Kills</div></div>
+        <div class="scard"><div class="scard-val" id="ms-s">–</div><div class="scard-lbl">Storm</div></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="psec-head"><span>Auto Insight</span></div>
+      <div id="auto-insight" class="insight-card">
+        <div class="ic-title">⚡ Loading…</div>
+        <div class="ic-body">Select a map and date to see automated insights.</div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="psec-head"><span>Event Breakdown</span></div>
+      <div class="breakdown" id="breakdown"></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="psec-head"><span>Selected Match</span></div>
+      <div id="sel-card">
+        <div class="ic-body" style="text-align:center;padding:8px 0">Click any match<br>in the list to inspect it.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- LEGEND -->
+<div id="legend" style="display:none">
+  <div class="leg-row"><div class="leg-line" style="background:var(--col-human)"></div>Human path</div>
+  <div class="leg-row"><div class="leg-line" style="background:var(--col-bot)"></div>Bot path</div>
+  <div class="leg-row"><div class="leg-dot" style="background:var(--col-kill)"></div>Kill</div>
+  <div class="leg-row"><div class="leg-dot" style="background:var(--col-killed)"></div>Killed</div>
+  <div class="leg-row"><div class="leg-dot" style="background:var(--col-botkill)"></div>Bot Kill</div>
+  <div class="leg-row"><div class="leg-dot" style="background:var(--col-storm)"></div>Storm Death</div>
+  <div class="leg-row"><div class="leg-dot" style="background:var(--col-loot)"></div>Loot</div>
+</div>
+
+<!-- KEYBOARD SHORTCUTS -->
+<div id="kb-overlay" onclick="hideKb()">
+  <div class="kb-card" onclick="event.stopPropagation()">
+    <div class="kb-title">KEYBOARD SHORTCUTS</div>
+    <div class="kb-row"><span class="kb-action">Play / Pause</span><div class="kb-keys"><kbd>Space</kbd></div></div>
+    <div class="kb-row"><span class="kb-action">Step timeline</span><div class="kb-keys"><kbd>←</kbd><kbd>→</kbd></div></div>
+    <div class="kb-row"><span class="kb-action">Fit map to screen</span><div class="kb-keys"><kbd>F</kbd></div></div>
+    <div class="kb-row"><span class="kb-action">Toggle side panel</span><div class="kb-keys"><kbd>P</kbd></div></div>
+    <div class="kb-row"><span class="kb-action">Zoom in / out</span><div class="kb-keys"><kbd>+</kbd><kbd>−</kbd></div></div>
+    <div class="kb-row"><span class="kb-action">Close</span><div class="kb-keys"><kbd>Esc</kbd></div></div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<!-- INSIGHTS MODAL -->
+<div id="insights-modal" class="hidden">
+  <div class="im-card">
+    <div class="im-header">
+      <div class="im-title">Key Findings</div>
+      <button class="im-close" onclick="hideInsights()">✕</button>
+    </div>
+    <div class="im-subtitle">5 days · 796 matches · 89,104 events · Feb 10–14, 2026</div>
+
+    <div class="im-findings">
+
+      <div class="im-finding">
+        <div class="im-finding-left">
+          <div class="im-finding-num" style="color:var(--red)">01</div>
+          <div class="im-finding-badge" style="background:rgba(255,58,92,.12);color:var(--red);border-color:rgba(255,58,92,.3)">Critical</div>
+        </div>
+        <div class="im-finding-right">
+          <div class="im-finding-title">PvP is basically nonexistent</div>
+          <div class="im-finding-stat">Only <b>3 PvP kills</b> across all 796 matches. 99.9% of kills are against bots.</div>
+          <div class="im-finding-why">Average 1 human per match — players never encounter each other. Fix matchmaking before map changes.</div>
+          <button class="im-finding-cta" onclick="hideInsights()">Filter to Kill events on map →</button>
+        </div>
+      </div>
+
+      <div class="im-finding">
+        <div class="im-finding-left">
+          <div class="im-finding-num" style="color:var(--amber)">02</div>
+          <div class="im-finding-badge" style="background:rgba(255,180,0,.1);color:var(--amber);border-color:rgba(255,180,0,.25)">High Priority</div>
+        </div>
+        <div class="im-finding-right">
+          <div class="im-finding-title">25–30% of every map is never visited</div>
+          <div class="im-finding-stat">AmbroseValley east: <b>0% traffic</b>. GrandRift outer zones: empty. Lockdown north port: ignored.</div>
+          <div class="im-finding-why">No loot or objectives pulling players to these zones. Players take the shortest path to center every time.</div>
+          <button class="im-finding-cta" onclick="hideInsights();setHeatmap('traffic',document.querySelector('.hm-item:nth-child(4)'))">Open Traffic heatmap →</button>
+        </div>
+      </div>
+
+      <div class="im-finding">
+        <div class="im-finding-left">
+          <div class="im-finding-num" style="color:var(--cyan)">03</div>
+          <div class="im-finding-badge" style="background:rgba(0,212,255,.08);color:var(--cyan);border-color:rgba(0,212,255,.2)">Design Issue</div>
+        </div>
+        <div class="im-finding-right">
+          <div class="im-finding-title">79–91% of all combat in one zone</div>
+          <div class="im-finding-stat">Every map has one hotspot in the center. Everything else is dark. Same route, every single match.</div>
+          <div class="im-finding-why">Loot is too concentrated in center. Redistribute it to create multiple viable routes and strategies.</div>
+          <button class="im-finding-cta" onclick="hideInsights();setHeatmap('kills',document.querySelector('.hm-item:nth-child(2)'))">Open Kill Zones heatmap →</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="im-cta">
+      <button class="im-btn im-btn-secondary" onclick="hideInsights()">Explore the tool</button>
+    </div>
+  </div>
+</div>
+<div id="loading">
+  <div class="ld-logo">LILA <b>BLACK</b></div>
+  <div class="ld-bar-wrap"><div class="ld-bar" id="ld-bar"></div></div>
+  <div class="ld-txt" id="ld-txt">INITIALIZING…</div>
+  <div class="ld-sub">Level Intelligence Platform</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════
+const DATA_PATH='./data/';
+const MAPS=['AmbroseValley','GrandRift','Lockdown'];
+const MAP_IMG={
+  AmbroseValley:'./data/AmbroseValley_Minimap.png',
+  GrandRift:'./data/GrandRift_Minimap.png',
+  Lockdown:'./data/Lockdown_Minimap.jpg',
+};
+const EV_COLOR={
+  Kill:'#ff3a5c',Killed:'#ff6b35',
+  BotKill:'#ff8c00',BotKilled:'#ffaa00',
+  KilledByStorm:'#b06aff',Loot:'#ffd700',
+};
+const EV_SIZE={Kill:5.5,Killed:5.5,BotKill:4.5,BotKilled:4.5,KilledByStorm:6,Loot:3.5};
+const MOVE_EVS=new Set(['Position','BotPosition']);
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+const S={
+  map:'AmbroseValley',date:'',match:null,
+  showHuman:true,showBot:true,
+  heatmap:'none',hmOpacity:0.72,
+  events:new Set(['Kill','Killed','BotKill','BotKilled','KilledByStorm','Loot']),
+  tlPos:0,playing:false,speed:1,
+  zoom:1,panX:0,panY:0,
+  drag:false,dragX:0,dragY:0,dragPX:0,dragPY:0,
+  legendVisible:false,sidebarOpen:true,
+};
+let DB={},HM={},MI={};
+let hmCache={};
+
+// ══════════════════════════════════════════
+// DOM
+// ══════════════════════════════════════════
+const imgMap=document.getElementById('img-map');
+const cvMain=document.getElementById('cv-main');
+const cvHeat=document.getElementById('cv-heat');
+const ctx=cvMain.getContext('2d');
+const hCtx=cvHeat.getContext('2d');
+const wrap=document.getElementById('canvas-wrap');
+const ldBar=document.getElementById('ld-bar');
+const ldTxt=document.getElementById('ld-txt');
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+async function init(){
+  try{
+    setLoad('LOADING METADATA…',5);
+    const meta=await gj('meta.json');
+    document.getElementById('s-matches').textContent=meta.total_matches||'–';
+    document.getElementById('s-players').textContent=meta.total_records||'–';
+
+    setLoad('MATCH INDEX…',20);
+    MI=await gj('match_index.json');
+
+    setLoad('HEATMAPS…',35);
+    try{ HM=await gj('heatmaps.json'); }catch(e){}
+
+    for(let i=0;i<MAPS.length;i++){
+      setLoad(`${MAPS[i].toUpperCase()}…`,40+i*18);
+      try{ DB[MAPS[i]]=await gj(`data_${MAPS[i]}.json`); }
+      catch(e){ DB[MAPS[i]]=[]; }
+    }
+
+    setLoad('READY',100);
+    await sleep(280);
+    document.getElementById('loading').style.display='none';
+    showInsightsOnLoad();
+
+    resizeAll();
+    window.addEventListener('resize',resizeAll);
+    setupInput();
+    setupKeyboard();
+    document.getElementById('f-date').addEventListener('change',e=>{ S.date=e.target.value; refreshView(); });
+    document.getElementById('map-nav').addEventListener('click',e=>{
+      const btn=e.target.closest('.map-btn');
+      if(btn) switchMap(btn.dataset.map);
+    });
+
+    switchMap('AmbroseValley');
+  }catch(err){
+    console.error(err);
+    setLoad('ERROR — check console',100);
+    document.getElementById('no-data').style.display='flex';
+  }
+}
+
+const gj=u=>fetch(DATA_PATH+u).then(r=>{ if(!r.ok) throw Error(r.status); return r.json(); });
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const setLoad=(t,p)=>{ ldTxt.textContent=t; ldBar.style.width=p+'%'; };
+
+// ══════════════════════════════════════════
+// KEYBOARD
+// ══════════════════════════════════════════
+function setupKeyboard(){
+  window.addEventListener('keydown',e=>{
+    const tag=document.activeElement.tagName;
+    if(tag==='INPUT'||tag==='SELECT') return;
+    switch(e.code){
+      case 'Space': e.preventDefault(); togglePlay(); break;
+      case 'ArrowLeft': nudge(-0.02); break;
+      case 'ArrowRight': nudge(0.02); break;
+      case 'KeyF': resetView(); break;
+      case 'KeyP': toggleSidebar(); break;
+      case 'Slash': case 'Question': if(e.shiftKey||e.key==='?') showKb(); break;
+      case 'Escape': hideKb(); break;
+      case 'Equal': case 'NumpadAdd': doZoom(1.2); break;
+      case 'Minus': case 'NumpadSubtract': doZoom(0.83); break;
+    }
+  });
+}
+
+// ══════════════════════════════════════════
+// RESIZE
+// ══════════════════════════════════════════
+function resizeAll(){
+  cvMain.width=cvHeat.width=wrap.clientWidth;
+  cvMain.height=cvHeat.height=wrap.clientHeight;
+  redraw(); drawHeatmap();
+}
+
+// ══════════════════════════════════════════
+// MAP SWITCH
+// ══════════════════════════════════════════
+function switchMap(id){
+  S.map=id; S.match=null; S.tlPos=0;
+  document.getElementById('s-map').textContent=id;
+  document.querySelectorAll('.map-btn').forEach(t=>t.classList.toggle('active',t.dataset.map===id));
+  imgMap.src=MAP_IMG[id];
+  imgMap.onload=()=>{ resetView(); refreshView(); };
+  if(imgMap.complete&&imgMap.naturalWidth){ resetView(); refreshView(); }
+}
+
+// ══════════════════════════════════════════
+// TRANSFORM
+// ══════════════════════════════════════════
+function applyCSS(){
+  imgMap.style.transform=`translate(${S.panX}px,${S.panY}px) scale(${S.zoom})`;
+}
+
+function resetView(){
+  const iw=imgMap.naturalWidth||1024,ih=imgMap.naturalHeight||1024;
+  const cw=wrap.clientWidth,ch=wrap.clientHeight;
+  const fit=Math.min(cw/iw,ch/ih)*0.97;
+  S.zoom=fit; S.panX=(cw-iw*fit)/2; S.panY=(ch-ih*fit)/2;
+  applyCSS(); redraw(); drawHeatmap();
+}
+
+function doZoom(f){
+  const cw=wrap.clientWidth/2,ch=wrap.clientHeight/2;
+  const nz=Math.max(0.08,Math.min(14,S.zoom*f));
+  S.panX=cw-(cw-S.panX)*(nz/S.zoom);
+  S.panY=ch-(ch-S.panY)*(nz/S.zoom);
+  S.zoom=nz; applyCSS(); schedDraw();
+}
+
+function toSc(px,py){
+  const iw=imgMap.naturalWidth||1024,ih=imgMap.naturalHeight||1024;
+  return{ x:S.panX+(px/1024)*iw*S.zoom, y:S.panY+(py/1024)*ih*S.zoom };
+}
+
+// ══════════════════════════════════════════
+// INPUT
+// ══════════════════════════════════════════
+function setupInput(){
+  wrap.addEventListener('mousedown',e=>{ if(e.button!==0) return; S.drag=true; S.dragX=e.clientX; S.dragY=e.clientY; S.dragPX=S.panX; S.dragPY=S.panY; wrap.style.cursor='grabbing'; });
+  window.addEventListener('mousemove',e=>{ if(!S.drag) return; S.panX=S.dragPX+(e.clientX-S.dragX); S.panY=S.dragPY+(e.clientY-S.dragY); applyCSS(); schedDraw(); });
+  window.addEventListener('mouseup',()=>{ S.drag=false; wrap.style.cursor='crosshair'; });
+  wrap.addEventListener('wheel',e=>{ e.preventDefault(); doZoom(e.deltaY<0?1.12:0.89); },{passive:false});
+  let ld=0;
+  wrap.addEventListener('touchstart',e=>{ if(e.touches.length===1){ S.drag=true; S.dragX=e.touches[0].clientX; S.dragY=e.touches[0].clientY; S.dragPX=S.panX; S.dragPY=S.panY; }else if(e.touches.length===2){ ld=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); } },{passive:true});
+  wrap.addEventListener('touchmove',e=>{ e.preventDefault(); if(e.touches.length===1&&S.drag){ S.panX=S.dragPX+(e.touches[0].clientX-S.dragX); S.panY=S.dragPY+(e.touches[0].clientY-S.dragY); applyCSS(); schedDraw(); }else if(e.touches.length===2){ const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); if(ld) doZoom(d/ld); ld=d; } },{passive:false});
+  wrap.addEventListener('touchend',()=>{ S.drag=false; ld=0; });
+}
+
+// ══════════════════════════════════════════
+// FILTERED DATA
+// ══════════════════════════════════════════
+function filtered(){
+  return(DB[S.map]||[]).filter(r=>{
+    if(S.date&&r.date!==S.date) return false;
+    if(S.match&&r.match_id!==S.match) return false;
+    if(!S.showHuman&&!r.is_bot) return false;
+    if(!S.showBot&&r.is_bot) return false;
+    return true;
+  });
+}
+
+// ══════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════
+let rafPending=false;
+function schedDraw(){ if(!rafPending){ rafPending=true; requestAnimationFrame(()=>{ rafPending=false; redraw(); }); } }
+
+function redraw(){
+  const cw=cvMain.width,ch=cvMain.height;
+  ctx.clearRect(0,0,cw,ch);
+  const recs=filtered();
+  if(!recs.length) return;
+  const cutoff=S.tlPos>0?getDur(recs)*S.tlPos:Infinity;
+
+  // Human paths
+  ctx.save(); ctx.strokeStyle='#00d4ff'; ctx.lineWidth=1.2; ctx.globalAlpha=0.28;
+  ctx.beginPath();
+  recs.forEach(r=>{ if(r.is_bot) return; let f=true; for(const e of r.events){ if(e.e!=='Position') continue; if(e.t>cutoff) break; const s=toSc(e.x,e.y); f?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); f=false; } });
+  ctx.stroke();
+
+  // Bot paths
+  ctx.strokeStyle='#ff6b35'; ctx.lineWidth=0.8;
+  ctx.beginPath();
+  recs.forEach(r=>{ if(!r.is_bot) return; let f=true; for(const e of r.events){ if(e.e!=='BotPosition') continue; if(e.t>cutoff) break; const s=toSc(e.x,e.y); f?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); f=false; } });
+  ctx.stroke();
+  ctx.restore();
+
+  // Event markers — bucketed
+  const buckets={};
+  recs.forEach(r=>{ r.events.forEach(e=>{ if(MOVE_EVS.has(e.e)||!S.events.has(e.e)||e.t>cutoff) return; (buckets[e.e]||(buckets[e.e]=[])).push(e); }); });
+  const sz=Math.max(2.5,Math.min(7,S.zoom*3));
+  Object.entries(buckets).forEach(([et,evs])=>{
+    const col=EV_COLOR[et]; if(!col) return;
+    const r=(EV_SIZE[et]||4)*sz/5;
+    ctx.save(); ctx.fillStyle=col; ctx.globalAlpha=0.85;
+    evs.forEach(e=>{ const s=toSc(e.x,e.y); ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2); ctx.fill(); });
+    if(evs.length<3000){ ctx.shadowColor=col; ctx.shadowBlur=8; ctx.globalAlpha=0.2; evs.forEach(e=>{ const s=toSc(e.x,e.y); ctx.beginPath(); ctx.arc(s.x,s.y,r*1.6,0,Math.PI*2); ctx.fill(); }); }
+    ctx.restore();
+  });
+
+  // Current position dots
+  if(S.tlPos>0){
+    ctx.save();
+    recs.forEach(r=>{ const me=r.is_bot?'BotPosition':'Position'; let lx=null,ly=null; for(const e of r.events){ if(e.e!==me) continue; if(e.t>cutoff) break; lx=e.x; ly=e.y; } if(lx===null) return; const s=toSc(lx,ly),col=r.is_bot?'#ff6b35':'#00d4ff'; ctx.fillStyle=col; ctx.globalAlpha=0.9; ctx.beginPath(); ctx.arc(s.x,s.y,r.is_bot?3:4,0,Math.PI*2); ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=0.7; ctx.globalAlpha=0.6; ctx.stroke(); });
+    ctx.restore();
+  }
+  drawHeatmap();
+}
+
+// ══════════════════════════════════════════
+// HEATMAP
+// ══════════════════════════════════════════
+const GS=64,CP=1024/64;
+
+function buildGrid(recs){
+  const kills=new Float32Array(GS*GS),deaths=new Float32Array(GS*GS),traffic=new Float32Array(GS*GS);
+  const cutoff=S.tlPos>0?getDur(recs)*S.tlPos:Infinity;
+  recs.forEach(r=>{ r.events.forEach(e=>{ if(e.t>cutoff) return; const gx=Math.max(0,Math.min(GS-1,Math.floor(e.x/CP))),gy=Math.max(0,Math.min(GS-1,Math.floor(e.y/CP))),i=gy*GS+gx,et=e.e; if(et==='Kill'||et==='BotKill') kills[i]++; else if(et==='Killed'||et==='BotKilled'||et==='KilledByStorm') deaths[i]++; else if(et==='Position'||et==='BotPosition') traffic[i]++; }); });
+  return{kills,deaths,traffic};
+}
+
+function pctCap(arr,p=0.92){ const nz=Array.from(arr).filter(v=>v>0).sort((a,b)=>a-b); if(!nz.length) return 1; return nz[Math.min(Math.floor(nz.length*p),nz.length-1)]||1; }
+
+function gridToCanvas(arr,cap,type){
+  const off=document.createElement('canvas'); off.width=off.height=1024; const oc=off.getContext('2d');
+  for(let i=0;i<GS*GS;i++){ const v=arr[i]; if(!v) continue; const t=Math.pow(Math.min(1,v/cap),0.5); let r,g,b;
+    if(type==='kills'){ r=Math.round(255*Math.min(1,t*1.4)); g=Math.round(30*t); b=20; }
+    else if(type==='deaths'){ r=Math.round(160*t); g=Math.round(30*t); b=Math.round(220*Math.min(1,t*1.3)); }
+    else{ r=10; g=Math.round(210*Math.min(1,t*1.2)); b=Math.round(255*Math.min(1,t*1.4)); }
+    oc.fillStyle=`rgba(${r},${g},${b},${(t*0.82).toFixed(2)})`; const gx=i%GS,gy=Math.floor(i/GS); oc.fillRect(gx*CP,gy*CP,CP+0.5,CP+0.5); }
+  return off;
+}
+
+function hmKey(){ return`${S.map}_${S.heatmap}_${S.date}_${S.match||'all'}_${S.showHuman}_${S.showBot}_${Math.round(S.tlPos*20)}`; }
+
+function drawHeatmap(){
+  // Ensure canvas has correct dimensions
+  if(cvHeat.width!==wrap.clientWidth||cvHeat.height!==wrap.clientHeight){
+    cvHeat.width=wrap.clientWidth; cvHeat.height=wrap.clientHeight;
+  }
+  hCtx.clearRect(0,0,cvHeat.width,cvHeat.height);
+  if(S.heatmap==='none') return;
+  if(cvHeat.width===0||cvHeat.height===0) return;
+  const key=hmKey();
+  if(!hmCache[key]){
+    const recs=filtered(); if(!recs.length) return;
+    const grids=buildGrid(recs);
+    const arr=grids[S.heatmap==='kills'?'kills':S.heatmap==='deaths'?'deaths':'traffic'];
+    const cap=pctCap(arr);
+    if(!cap) return;
+    hmCache[key]=gridToCanvas(arr,cap,S.heatmap);
+    const ks=Object.keys(hmCache); if(ks.length>40) delete hmCache[ks[0]];
+  }
+  const iw=imgMap.naturalWidth||1024,ih=imgMap.naturalHeight||1024;
+  if(!iw||!ih) return;
+  hCtx.save();
+  hCtx.translate(S.panX,S.panY);
+  hCtx.scale(S.zoom*(iw/1024),S.zoom*(ih/1024));
+  hCtx.globalAlpha=Math.max(0.01,Math.min(1,S.hmOpacity));
+  hCtx.drawImage(hmCache[key],0,0);
+  hCtx.restore();
+}
+
+// ══════════════════════════════════════════
+// TIMELINE
+// ══════════════════════════════════════════
+const getDur=recs=>{ let mx=0; recs.forEach(r=>r.events.forEach(e=>{ if(e.t>mx) mx=e.t; })); return mx||1; };
+const fmt=ms=>{ const s=Math.floor(ms/1000),m=Math.floor(s/60); return`${m}:${(s%60).toString().padStart(2,'0')}`; };
+
+function onSlider(v){
+  S.tlPos=v/1000;
+  const recs=filtered(),dur=getDur(recs);
+  document.getElementById('tl-cur').textContent=fmt(dur*S.tlPos);
+  document.getElementById('tl-dur').textContent=fmt(dur);
+  document.getElementById('tl-progress').style.width=(S.tlPos*100)+'%';
+  schedDraw();
+}
+
+function nudge(d){
+  S.tlPos=Math.max(0,Math.min(1,S.tlPos+d));
+  document.getElementById('tl-slider').value=Math.round(S.tlPos*1000);
+  document.getElementById('tl-progress').style.width=(S.tlPos*100)+'%';
+  document.getElementById('tl-cur').textContent=fmt(getDur(filtered())*S.tlPos);
+  schedDraw();
+}
+
+let lastT=0;
+function togglePlay(){
+  S.playing=!S.playing;
+  const btn=document.getElementById('btn-play');
+  btn.textContent=S.playing?'⏸':'▶'; btn.classList.toggle('playing',S.playing);
+  if(S.playing){ if(S.tlPos>=1) S.tlPos=0; lastT=performance.now(); requestAnimationFrame(tick); }
+}
+
+function tick(ts){
+  if(!S.playing) return;
+  const dt=ts-lastT; lastT=ts;
+  const recs=filtered(),dur=getDur(recs);
+  S.tlPos=Math.min(1,S.tlPos+(dt*S.speed)/dur);
+  const sliderVal=Math.round(S.tlPos*1000);
+  document.getElementById('tl-slider').value=sliderVal;
+  document.getElementById('tl-progress').style.width=(S.tlPos*100)+'%';
+  document.getElementById('tl-cur').textContent=fmt(dur*S.tlPos);
+  redraw();
+  if(S.tlPos>=1){ S.playing=false; document.getElementById('btn-play').textContent='▶'; document.getElementById('btn-play').classList.remove('playing'); return; }
+  requestAnimationFrame(tick);
+}
+
+const SPEEDS=[0.5,1,2,4,8]; let spI=1;
+function cycleSpeed(){ spI=(spI+1)%SPEEDS.length; S.speed=SPEEDS[spI]; document.getElementById('tl-spd').textContent=SPEEDS[spI]+'×'; }
+
+// ══════════════════════════════════════════
+// TOGGLES
+// ══════════════════════════════════════════
+function toggleEvent(el){
+  el.classList.toggle('on');
+  const ev=el.dataset.ev;
+  el.classList.contains('on')?S.events.add(ev):S.events.delete(ev);
+  schedDraw();
+}
+
+let allOn=true;
+function toggleAllEvents(){
+  allOn=!allOn;
+  document.querySelectorAll('.ev-item').forEach(el=>{
+    el.classList.toggle('on',allOn);
+    const ev=el.dataset.ev;
+    allOn?S.events.add(ev):S.events.delete(ev);
+  });
+  schedDraw();
+}
+
+function togglePlayer(type){
+  if(type==='human'){ S.showHuman=!S.showHuman; const el=document.getElementById('tog-human'); el.classList.toggle('human-on',S.showHuman); el.style.opacity=S.showHuman?'1':'0.4'; }
+  else{ S.showBot=!S.showBot; const el=document.getElementById('tog-bot'); el.classList.toggle('bot-on',S.showBot); el.style.opacity=S.showBot?'1':'0.4'; }
+  refreshView();
+}
+
+function setHeatmap(type,el){
+  S.heatmap=type;
+  document.querySelectorAll('.hm-item').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  // Force fresh render for new type
+  hmCache={};
+  drawHeatmap();
+}
+
+function setHmOpacity(v){
+  S.hmOpacity=v/100;
+  document.getElementById('hm-opacity-val').textContent=v+'%';
+  drawHeatmap();
+}
+
+// ══════════════════════════════════════════
+// UI TOGGLES
+// ══════════════════════════════════════════
+function toggleSidebar(){
+  S.sidebarOpen=!S.sidebarOpen;
+  document.getElementById('lpanel').classList.toggle('collapsed',!S.sidebarOpen);
+  setTimeout(()=>{ resizeAll(); },160);
+}
+
+function toggleLegend(){
+  S.legendVisible=!S.legendVisible;
+  document.getElementById('legend').style.display=S.legendVisible?'flex':'none';
+  document.getElementById('btn-legend-toggle').classList.toggle('active',S.legendVisible);
+}
+
+function showKb(){ document.getElementById('kb-overlay').classList.add('show'); }
+function hideKb(){ document.getElementById('kb-overlay').classList.remove('show'); }
+
+// ══════════════════════════════════════════
+// AUTO INSIGHT ENGINE
+// ══════════════════════════════════════════
+function computeInsight(recs){
+  if(!recs.length) return{ title:'No data', body:'Adjust filters to load data.' };
+
+  const ec={};
+  let humans=0,bots=0;
+  recs.forEach(r=>{
+    r.is_bot?bots++:humans++;
+    r.events.forEach(e=>{ if(!MOVE_EVS.has(e.e)) ec[e.e]=(ec[e.e]||0)+1; });
+  });
+
+  const totalKills=(ec.Kill||0)+(ec.BotKill||0);
+  const totalDeaths=(ec.Killed||0)+(ec.BotKilled||0)+(ec.KilledByStorm||0);
+  const stormDeaths=ec.KilledByStorm||0;
+  const loot=ec.Loot||0;
+  const pvpRatio=totalKills>0?(ec.Kill||0)/totalKills:0;
+  const stormRatio=totalDeaths>0?stormDeaths/totalDeaths:0;
+  const botRatio=bots/(humans+bots||1);
+
+  if(stormRatio>0.3){
+    return{
+      title:'⚡ Storm is deadly here',
+      body:`${Math.round(stormRatio*100)}% of deaths are storm-related. Players may not be routing toward extraction efficiently.`
+    };
+  }
+  if(pvpRatio<0.05&&totalKills>10){
+    return{
+      title:'🤖 Bot-dominated combat',
+      body:`Only ${Math.round(pvpRatio*100)}% of kills are PvP. Players are mostly fighting bots — human encounters are rare.`
+    };
+  }
+  if(botRatio>0.8){
+    return{
+      title:'🤖 High bot density',
+      body:`${Math.round(botRatio*100)}% of players are bots. Match balance may feel thin for human players.`
+    };
+  }
+  if(loot>0&&humans>0&&loot/humans<5){
+    return{
+      title:'📦 Low loot pickup',
+      body:`Avg ${(loot/humans).toFixed(1)} loot events per human player. Area may be under-resourced or players are avoiding it.`
+    };
+  }
+  return{
+    title:`✓ ${humans} humans · ${bots} bots`,
+    body:`${totalKills} total kills · ${stormDeaths} storm deaths · ${loot} loot pickups across ${Object.keys((() => { const m={}; recs.forEach(r=>m[r.match_id]=1); return m; })()).length} matches.`
+  };
+}
+
+function updateInsight(recs){
+  const ins=computeInsight(recs);
+  document.getElementById('auto-insight').innerHTML=`<div class="ic-title">${ins.title}</div><div class="ic-body">${ins.body}</div>`;
+}
+
+// ══════════════════════════════════════════
+// MATCH LIST
+// ══════════════════════════════════════════
+function buildMatchList(recs){
+  const bm={};
+  recs.forEach(r=>{ const m=r.match_id; if(!bm[m]) bm[m]={id:m,h:0,b:0,date:r.date}; r.is_bot?bm[m].b++:bm[m].h++; });
+  const ms=Object.values(bm).sort((a,b)=>a.date.localeCompare(b.date));
+  document.getElementById('match-count').textContent=ms.length;
+
+  const list=document.getElementById('match-list');
+  if(!ms.length){
+    list.innerHTML=`<div class="empty-matches"><b>No matches found</b>Try changing the date or map filter.</div>`;
+    return;
+  }
+  const frag=document.createDocumentFragment();
+  ms.slice(0,150).forEach(m=>{
+    const div=document.createElement('div');
+    div.className='match-card'+(S.match===m.id?' sel':'');
+    div.innerHTML=`<div class="mc-id">${m.id.substring(0,22)}…</div><div class="mc-row"><span class="mc-tag h">● ${m.h}H</span><span class="mc-tag b">● ${m.b}B</span><span class="mc-date">${m.date.substring(5)}</span></div>`;
+    div.onclick=()=>selectMatch(m.id);
+    frag.appendChild(div);
+  });
+  list.innerHTML=''; list.appendChild(frag);
+}
+
+function selectMatch(id){
+  S.match=S.match===id?null:id; S.tlPos=0;
+  document.getElementById('tl-slider').value=0;
+  document.getElementById('tl-progress').style.width='0%';
+  refreshView(); updateSel();
+}
+
+function updateSel(){
+  const el=document.getElementById('sel-card');
+  if(!S.match){
+    el.innerHTML=`<div class="ic-body" style="text-align:center;padding:8px 0">Click any match<br>in the list to inspect it.</div>`;
+    document.getElementById('tl-lbl').textContent='All Matches';
+    return;
+  }
+  const m=MI[S.match]||{};
+  el.innerHTML=`
+    <div class="sel-mid">${S.match}</div>
+    <div class="sel-row"><span class="sel-key">Date</span><span class="sel-val">${m.date||'–'}</span></div>
+    <div class="sel-row"><span class="sel-key">Map</span><span class="sel-val">${m.map_id||'–'}</span></div>
+    <div class="sel-row"><span class="sel-key">Humans</span><span class="sel-val" style="color:var(--col-human)">${m.player_count||0}</span></div>
+    <div class="sel-row"><span class="sel-key">Bots</span><span class="sel-val" style="color:var(--col-bot)">${m.bot_count||0}</span></div>
+    <div class="sel-row"><span class="sel-key">Events</span><span class="sel-val">${m.event_count||0}</span></div>
+  `;
+  document.getElementById('tl-lbl').textContent='Match: '+S.match.substring(0,14)+'…';
+}
+
+// ══════════════════════════════════════════
+// RIGHT PANEL
+// ══════════════════════════════════════════
+function updatePanel(recs){
+  let h=0,b=0; const ec={};
+  recs.forEach(r=>{ r.is_bot?b++:h++; r.events.forEach(e=>{ if(!MOVE_EVS.has(e.e)) ec[e.e]=(ec[e.e]||0)+1; }); });
+  document.getElementById('ms-h').textContent=h;
+  document.getElementById('ms-b').textContent=b;
+  document.getElementById('ms-k').textContent=(ec.Kill||0)+(ec.BotKill||0);
+  document.getElementById('ms-s').textContent=ec.KilledByStorm||0;
+
+  const ORDER=['Kill','Killed','BotKill','BotKilled','KilledByStorm','Loot'];
+  const mx=Math.max(1,...ORDER.map(k=>ec[k]||0));
+  document.getElementById('breakdown').innerHTML=ORDER.map(k=>{
+    const cnt=ec[k]||0,pct=(cnt/mx*100).toFixed(0),col=EV_COLOR[k]||'#fff';
+    const ecEl=document.getElementById('ec-'+k); if(ecEl) ecEl.textContent=cnt;
+    return`<div class="bk-row"><div class="bk-hd"><span class="bk-name" style="color:${col}">${k}</span><span class="bk-val" style="color:${col}">${cnt}</span></div><div class="bk-track"><div class="bk-fill" style="width:${pct}%;background:${col}"></div></div></div>`;
+  }).join('');
+
+  updateInsight(recs);
+}
+
+// ══════════════════════════════════════════
+// REFRESH
+// ══════════════════════════════════════════
+function refreshView(){
+  const recs=filtered();
+  buildMatchList(recs); updatePanel(recs);
+  const dur=getDur(recs);
+  document.getElementById('tl-dur').textContent=fmt(dur);
+  schedDraw(); drawHeatmap();
+}
+
+// ══════════════════════════════════════════
+// INSIGHTS MODAL
+// ══════════════════════════════════════════
+function showInsights(){
+  document.getElementById('insights-modal').classList.remove('hidden');
+}
+function hideInsights(){
+  document.getElementById('insights-modal').classList.add('hidden');
+}
+// Show on first load after data loads
+function showInsightsOnLoad(){
+  setTimeout(()=>{ showInsights(); }, 600);
+}
+
+init();
+</script>
+</body>
+</html>
